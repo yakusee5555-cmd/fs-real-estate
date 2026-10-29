@@ -1,89 +1,9 @@
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, useReducedMotion } from "framer-motion";
 import { BUSINESS, LISTINGS } from "../data";
 
-/* Subtle twinkling city-lights canvas over the hero image.
-   Pauses off-screen; renders one static frame under reduced motion. */
-function TwinkleLights() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const reduce = useReducedMotion();
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    let w = 0;
-    let h = 0;
-    let raf = 0;
-    let running = false;
-    const dots = Array.from({ length: 46 }, () => ({
-      x: Math.random(),
-      y: 0.25 + Math.random() * 0.7,
-      r: 0.8 + Math.random() * 1.8,
-      phase: Math.random() * Math.PI * 2,
-      speed: 0.4 + Math.random() * 1.2,
-      warm: Math.random() > 0.45,
-    }));
-
-    const size = () => {
-      const rect = canvas.getBoundingClientRect();
-      w = canvas.width = Math.max(1, Math.floor(rect.width / 2));
-      h = canvas.height = Math.max(1, Math.floor(rect.height / 2));
-    };
-    size();
-    window.addEventListener("resize", size);
-
-    const draw = (t: number) => {
-      ctx.clearRect(0, 0, w, h);
-      for (const d of dots) {
-        const tw = reduce ? 0.55 : 0.25 + 0.55 * (0.5 + 0.5 * Math.sin(t / 1000 * d.speed + d.phase));
-        ctx.beginPath();
-        ctx.arc(d.x * w, d.y * h, d.r, 0, Math.PI * 2);
-        ctx.fillStyle = d.warm
-          ? `rgba(240,192,48,${tw.toFixed(3)})`
-          : `rgba(255,255,255,${(tw * 0.8).toFixed(3)})`;
-        ctx.fill();
-      }
-    };
-
-    if (reduce) {
-      draw(0);
-    } else {
-      const loop = (t: number) => {
-        draw(t);
-        if (running) raf = requestAnimationFrame(loop);
-      };
-      const io = new IntersectionObserver(([e]) => {
-        if (e.isIntersecting && !running) {
-          running = true;
-          raf = requestAnimationFrame(loop);
-        } else if (!e.isIntersecting && running) {
-          running = false;
-          cancelAnimationFrame(raf);
-        }
-      });
-      io.observe(canvas);
-      return () => {
-        running = false;
-        cancelAnimationFrame(raf);
-        io.disconnect();
-        window.removeEventListener("resize", size);
-      };
-    }
-    return () => window.removeEventListener("resize", size);
-  }, [reduce]);
-
-  return (
-    <canvas
-      ref={canvasRef}
-      aria-hidden="true"
-      className="pointer-events-none absolute inset-0 h-full w-full"
-    />
-  );
-}
+const SkylineCanvas = lazy(() => import("./SkylineCanvas"));
 
 /* Floating sample-property mini card — gentle drift, no pointer tracking. */
 function FloatCard({
@@ -127,6 +47,21 @@ const line = {
   }),
 };
 
+/* word-by-word headline reveal */
+const wordWrap = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.13, delayChildren: 0.25 } },
+};
+const word = {
+  hidden: { opacity: 0, y: 46, filter: "blur(10px)" },
+  show: {
+    opacity: 1,
+    y: 0,
+    filter: "blur(0px)",
+    transition: { duration: 0.75, ease: [0.22, 1, 0.36, 1] as const },
+  },
+};
+
 export default function HeroV2() {
   const navigate = useNavigate();
   const [q, setQ] = useState("");
@@ -145,26 +80,11 @@ export default function HeroV2() {
 
   return (
     <section className="relative flex min-h-[100svh] flex-col overflow-hidden bg-royal-night">
-      {/* base photo */}
-      <img
-        src="/img/hero.jpg"
-        alt="Mumbai residential towers at dusk"
-        draggable={false}
-        className="absolute inset-0 h-full w-full scale-105 object-cover"
-      />
-      {/* animated deep-blue gradient mesh */}
-      <div aria-hidden="true" className="absolute inset-0">
-        <div className="mesh-blob absolute -left-32 top-1/4 h-[480px] w-[480px] rounded-full bg-royal/60 blur-[110px]" />
-        <div
-          className="mesh-blob2 absolute -right-32 top-10 h-[420px] w-[420px] rounded-full bg-royal-deep/70 blur-[110px]"
-          style={{ animationDelay: "-6s" }}
-        />
-        <div
-          className="mesh-blob absolute bottom-0 left-1/3 h-[380px] w-[520px] rounded-full bg-royal-ink/70 blur-[120px]"
-          style={{ animationDelay: "-12s" }}
-        />
-      </div>
-      <TwinkleLights />
+      {/* 3D dusk skyline background (code-split chunk, fades in on load) */}
+      <Suspense fallback={null}>
+        <SkylineCanvas />
+      </Suspense>
+      {/* legibility gradient over the 3D scene */}
       <div className="absolute inset-0 bg-gradient-to-t from-royal-night/95 via-royal-night/30 to-royal-night/50" />
 
       {/* floating cards (desktop) */}
@@ -186,16 +106,32 @@ export default function HeroV2() {
           Since 2008 · Andheri West, Mumbai
         </motion.p>
         <motion.h1
-          custom={1}
-          variants={line}
+          variants={wordWrap}
           initial="hidden"
           animate="show"
           className="mt-4 text-center font-display text-4xl font-bold leading-[1.06] text-white md:text-left md:text-7xl md:leading-[1.02]"
         >
-          We complete you.
-          <span className="mt-2 block text-xl font-semibold text-cream/85 md:text-3xl">
+          {["We", "complete", "you."].map((w) => (
+            <motion.span key={w} variants={word} className="mr-[0.28em] inline-block last:mr-0">
+              {w}
+            </motion.span>
+          ))}
+          <motion.span
+            aria-hidden="true"
+            className="mt-4 block h-[3px] w-28 origin-left bg-gold md:w-44"
+            initial={{ scaleX: 0, opacity: 0 }}
+            animate={{ scaleX: 1, opacity: 1 }}
+            transition={{ delay: 1.0, duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+          />
+          <motion.span
+            custom={1}
+            variants={line}
+            initial="hidden"
+            animate="show"
+            className="mt-3 block text-xl font-semibold text-cream/85 md:text-3xl"
+          >
             Buy, sell, rent & lease across Mumbai's western suburbs.
-          </span>
+          </motion.span>
         </motion.h1>
 
         {/* search bar */}
@@ -261,7 +197,7 @@ export default function HeroV2() {
             href={BUSINESS.phoneHref}
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.97 }}
-            className="btn-shine flex min-h-[52px] w-full items-center justify-center rounded-full bg-royal px-10 text-sm font-bold uppercase tracking-[0.2em] text-white sm:w-auto"
+            className="btn-shine btn-shine-loop flex min-h-[52px] w-full items-center justify-center rounded-full bg-royal px-10 text-sm font-bold uppercase tracking-[0.2em] text-white sm:w-auto"
           >
             Call {BUSINESS.phone}
           </motion.a>
@@ -271,7 +207,7 @@ export default function HeroV2() {
             rel="noreferrer"
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.97 }}
-            className="btn-shine flex min-h-[52px] w-full items-center justify-center rounded-full border-2 border-white/70 px-10 text-sm font-bold uppercase tracking-[0.2em] text-white sm:w-auto"
+            className="btn-shine btn-shine-loop flex min-h-[52px] w-full items-center justify-center rounded-full border-2 border-white/70 px-10 text-sm font-bold uppercase tracking-[0.2em] text-white sm:w-auto"
           >
             WhatsApp Us
           </motion.a>

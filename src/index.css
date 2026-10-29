@@ -214,19 +214,6 @@ body {
   background: var(--color-gold);
 }
 
-/* ---- animated hero gradient mesh blobs ---- */
-@keyframes mesh-drift {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(60px, -40px) scale(1.12); }
-  66% { transform: translate(-40px, 50px) scale(0.94); }
-}
-.mesh-blob { animation: mesh-drift 18s ease-in-out infinite; }
-@keyframes mesh-drift-2 {
-  0%, 100% { transform: translate(0, 0) scale(1.05); }
-  50% { transform: translate(-70px, 45px) scale(0.92); }
-}
-.mesh-blob2 { animation: mesh-drift-2 22s ease-in-out infinite; }
-
 /* ---- range sliders (EMI + price) ---- */
 .emi-slider,
 .price-slider {
@@ -283,9 +270,25 @@ body {
 
 /* ---- reduced motion: freeze the new ambient animations too ---- */
 @media (prefers-reduced-motion: reduce) {
-  .mesh-blob,
-  .mesh-blob2,
-  .skeleton-shimmer {
+  .skeleton-shimmer,
+  .btn-shine-loop::after,
+  .canvas-fadein {
     animation: none !important;
   }
 }
+
+/* ---- automatic shine sweep for hero CTAs (subtle, looping) ---- */
+@keyframes shine-loop {
+  0%, 68% { transform: translateX(-120%); }
+  100% { transform: translateX(120%); }
+}
+.btn-shine-loop::after {
+  animation: shine-loop 4.6s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+
+/* ---- fade-in for the lazy-loaded 3D hero canvas ---- */
+@keyframes canvas-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.canvas-fadein { animation: canvas-in 1.4s ease-out both; }
