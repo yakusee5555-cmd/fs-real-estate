@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
+import { AnimatePresence, motion } from "framer-motion";
 import { BUSINESS } from "../data";
 
 /* ---------- route effects: title, meta, reveal observer, scroll ---------- */
@@ -122,7 +123,7 @@ export function CtaBand({
   );
 }
 
-/* ---------- FAQ accordion ---------- */
+/* ---------- FAQ accordion (spring height animation) ---------- */
 export function Faq({ items }: { items: { q: string; a: string }[] }) {
   const [open, setOpen] = useState<number | null>(0);
   return (
@@ -139,23 +140,28 @@ export function Faq({ items }: { items: { q: string; a: string }[] }) {
               <span className="font-display text-lg tracking-wide text-charcoal md:text-xl">
                 {f.q}
               </span>
-              <span
-                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-royal text-xl text-cream transition-transform duration-300 ${
-                  isOpen ? "rotate-45" : ""
-                }`}
+              <motion.span
+                animate={{ rotate: isOpen ? 45 : 0 }}
+                transition={{ type: "spring", stiffness: 400, damping: 26 }}
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-royal text-xl text-cream"
               >
                 +
-              </span>
+              </motion.span>
             </button>
-            <div
-              className={`grid transition-all duration-300 ease-out ${
-                isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
-              }`}
-            >
-              <div className="overflow-hidden">
-                <p className="px-6 pb-6 text-base leading-relaxed text-charcoal/70">{f.a}</p>
-              </div>
-            </div>
+            <AnimatePresence initial={false}>
+              {isOpen && (
+                <motion.div
+                  key="a"
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
+                  className="overflow-hidden"
+                >
+                  <p className="px-6 pb-6 text-base leading-relaxed text-charcoal/70">{f.a}</p>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         );
       })}

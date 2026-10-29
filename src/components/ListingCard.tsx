@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
 import type { Listing } from "../data";
 
 const TYPE_STYLES: Record<Listing["type"], string> = {
@@ -7,12 +8,32 @@ const TYPE_STYLES: Record<Listing["type"], string> = {
   commercial: "bg-gold text-royal-night",
 };
 
-export default function ListingCard({ listing, index = 0 }: { listing: Listing; index?: number }) {
+const MotionLink = motion(Link);
+
+export default function ListingCard({
+  listing,
+  index = 0,
+  layout = false,
+}: {
+  listing: Listing;
+  index?: number;
+  layout?: boolean;
+}) {
   return (
-    <Link
+    <MotionLink
       to={`/listings/${listing.slug}`}
-      className="reveal group flex flex-col overflow-hidden rounded-3xl bg-white shadow-[0_10px_40px_rgba(16,28,82,0.10)] transition duration-300 hover:-translate-y-1.5 hover:shadow-[0_24px_60px_rgba(16,28,82,0.18)]"
-      style={{ transitionDelay: `${(index % 6) * 70}ms` }}
+      layout={layout}
+      initial={{ opacity: 0, y: 28, scale: 0.97 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.94, transition: { duration: 0.2 } }}
+      transition={{
+        duration: 0.55,
+        delay: (index % 6) * 0.06,
+        ease: [0.22, 1, 0.36, 1],
+        layout: { type: "spring", stiffness: 320, damping: 32 },
+      }}
+      whileHover={{ y: -6 }}
+      className="group flex flex-col overflow-hidden rounded-3xl bg-white shadow-[0_10px_40px_rgba(16,28,82,0.10)] hover:shadow-[0_24px_60px_rgba(16,28,82,0.18)]"
     >
       <div className="relative aspect-[4/3] overflow-hidden">
         <img
@@ -43,6 +64,6 @@ export default function ListingCard({ listing, index = 0 }: { listing: Listing; 
           <span className="ml-2 transition group-hover:translate-x-1">→</span>
         </span>
       </div>
-    </Link>
+    </MotionLink>
   );
 }

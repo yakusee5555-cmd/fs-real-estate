@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
+import { motion } from "framer-motion";
 import { BUSINESS, NAV, SERVICES, AREAS } from "../data";
 import Logo from "./Logo";
 
@@ -17,6 +18,30 @@ export function useReveal() {
     return () => io.disconnect();
   }, []);
   return ref;
+}
+
+/* ---------- desktop nav link with sliding gold underline ---------- */
+function NavLink({ href, label }: { href: string; label: string }) {
+  const { pathname } = useLocation();
+  const active = pathname === href;
+  return (
+    <Link
+      to={href}
+      aria-current={active ? "page" : undefined}
+      className={`relative flex min-h-[48px] items-center text-[13px] font-semibold uppercase tracking-wider transition ${
+        active ? "text-royal" : "text-charcoal/70 hover:text-royal"
+      }`}
+    >
+      {label}
+      {active && (
+        <motion.span
+          layoutId="nav-underline"
+          className="absolute -bottom-0.5 left-0 right-0 h-[3px] rounded-full bg-gold"
+          transition={{ type: "spring", stiffness: 500, damping: 38 }}
+        />
+      )}
+    </Link>
+  );
 }
 
 /* ---------- floating pill header + slide-out drawer ---------- */
@@ -52,13 +77,7 @@ export function Header() {
           </Link>
           <nav className="hidden items-center gap-7 lg:flex">
             {NAV.map((n) => (
-              <Link
-                key={n.href}
-                to={n.href}
-                className="flex min-h-[48px] items-center text-[13px] font-semibold uppercase tracking-wider text-charcoal/70 transition hover:text-royal"
-              >
-                {n.label}
-              </Link>
+              <NavLink key={n.href} href={n.href} label={n.label} />
             ))}
           </nav>
           <div className="flex items-center gap-2">
